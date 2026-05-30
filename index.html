@@ -11,235 +11,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
-        * {
-            font-family: "Roboto Mono", monospace !important;
-        }
-
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: "Roboto Mono", monospace;
-            font-weight: 500;
-            background-color: #000;
-        }
-
-        /* --- MÀN HÌNH CHỜ --- */
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #0a192f 0%, #020c1b 100%);
-            color: #64ffda;
-            display: flex; justify-content: center; align-items: center; flex-direction: column;
-            z-index: 9999;
-        }
-        #start-screen h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; text-align: center;}
-        #start-screen p { color: #8892b0; margin-top: 10px; text-align: center; max-width: 80%; }
-        
-        #start-btn {
-            margin-top: 30px; padding: 15px 40px; font-size: 18px; font-family: inherit;
-            background: transparent; color: #64ffda;
-            border: 2px solid #64ffda; border-radius: 4px;
-            cursor: pointer; transition: all 0.3s;
-            text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
-        }
-        #start-btn:hover { background: rgba(100, 255, 218, 0.1); box-shadow: 0 0 20px rgba(100, 255, 218, 0.5); }
-
-        /* Nút xóa dữ liệu */
-        #clear-data-btn {
-            margin-top: 15px; padding: 10px 20px; font-size: 14px; font-family: inherit;
-            background: transparent; color: #ff4d4d; /* Màu đỏ cảnh báo */
-            border: 1px solid #ff4d4d; border-radius: 4px;
-            cursor: pointer; transition: all 0.3s;
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        #clear-data-btn:hover { background: rgba(255, 77, 77, 0.1); box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); }
-
-        /* --- HUD GAMIFICATION --- */
-        #ui-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1000; display: none;
-        }
-
-        #mission-hud {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(2, 12, 27, 0.8);
-            border: 1px solid #64ffda; border-radius: 8px;
-            padding: 10px 20px;
-            text-align: center;
-            box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
-            backdrop-filter: blur(5px);
-        }
-        #mission-text { color: #ccd6f6; font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
-        #mission-counter { color: #64ffda; font-size: 22px; font-weight: bold; text-shadow: 0 0 5px #64ffda; }
-
-        /* Thông báo khi tìm thấy */
-        #toast-msg {
-            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
-            background: rgba(10, 25, 47, 0.9);
-            border-left: 4px solid #64ffda; border-right: 4px solid #64ffda;
-            color: #64ffda; padding: 12px 24px; font-size: 15px;
-            border-radius: 4px;
-            text-align: center;
-            min-width: 250px;
-            white-space: pre-line; 
-            box-shadow: 0 0 15px rgba(100, 255, 218, 0.2);
-            opacity: 0; transition: opacity 0.3s;
-        }
-        .show-toast { opacity: 1 !important; }
-
-        /* Màn hình hoàn thành */
-        #completion-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(2, 12, 27, 0.95);
-            color: #64ffda; display: none; justify-content: center; align-items: center; flex-direction: column;
-            z-index: 10000; pointer-events: auto;
-        }
-    </style>
-
-    <script>
-        const TOTAL_MAPS = 10;
-        let unlockedMaps = new Set();
-
-        const loadProgress = () => {
-            const saved = localStorage.getItem('ar_museum_progress');
-            if (saved) unlockedMaps = new Set(JSON.parse(saved));
-        };
-
-        const saveProgress = () => {
-            localStorage.setItem('ar_museum_progress', JSON.stringify([...unlockedMaps]));
-        };
-
-        const updateHUD = () => {
-            document.getElementById('mission-counter').innerText = `[ ${unlockedMaps.size} / ${TOTAL_MAPS} ]`;
-            if (unlockedMaps.size >= TOTAL_MAPS) {
-                setTimeout(() => { document.getElementById('completion-screen').style.display = 'flex'; }, 1500);
-            }
-        };
-
-        const showToast = (message) => {
-            const toast = document.getElementById('toast-msg');
-            toast.innerText = message;
-            toast.classList.add('show-toast');
-            setTimeout(() => { toast.classList.remove('show-toast'); }, 4000); 
-        };
-
-        document.addEventListener("DOMContentLoaded", function () {
-            loadProgress();
-            const startScreen = document.getElementById("start-screen");
-            const uiLayer = document.getElementById("ui-layer");
-            const startBtn = document.getElementById("start-btn");
-            const clearDataBtn = document.getElementById("clear-data-btn"); // Gọi nút xóa
-            const resetBtn = document.getElementById("reset-btn");
-
-            updateHUD();
-
-            // Nút bắt đầu AR
-            startBtn.addEventListener("click", function () {
-                const videos = document.querySelectorAll('video');
-                videos.forEach(vid => {
-                    vid.play().then(() => { vid.pause(); }).catch(e => console.log(e));
-                });
-                startScreen.style.display = "none";
-                uiLayer.style.display = "block"; 
-            });
-
-            // Logic xử lý nút xóa dữ liệu ở màn hình chờ
-            clearDataBtn.addEventListener("click", function () {
-                if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa toàn bộ dữ liệu đã thu thập và chơi lại từ đầu?")) {
-                    localStorage.removeItem('ar_museum_progress');
-                    unlockedMaps.clear();
-                    updateHUD();
-                    alert("Đã xóa dữ liệu thành công! Bạn có thể bắt đầu lại.");
-                }
-            });
-
-            // Nút reset ở màn hình hoàn thành 10/10
-            resetBtn.addEventListener("click", function() {
-                localStorage.removeItem('ar_museum_progress');
-                location.reload();
-            });
-        });
-
-        // 1. COMPONENT THEO DÕI BẢN ĐỒ
-        AFRAME.registerComponent('map-tracker', {
-            schema: { 
-                targetId: { type: 'number' },
-                targetName: { type: 'string', default: 'Dữ liệu không xác định' } 
-            },
-            init: function () {
-                this.el.addEventListener('targetFound', () => {
-                    const id = this.data.targetId;
-                    const name = this.data.targetName;
-                    
-                    if (!unlockedMaps.has(id)) {
-                        unlockedMaps.add(id);
-                        saveProgress();
-                        updateHUD();
-                        showToast(`ĐÃ TÌM THẤY CHIẾN DỊCH MỚI:\n${name}`);
-                    }
-                });
-            }
-        });
-
-        // 2. Xử lý Chroma Key
-        AFRAME.registerComponent('chromakey-video', {
-            schema: {
-                src: { type: 'selector' },
-                color: { type: 'color', default: '#00ff00' },
-                threshold: { type: 'number', default: 0.4 }
-            },
-            init: function () {
-                this.videoEl = this.data.src;
-                if (!this.videoEl) return;
-                this.texture = new THREE.VideoTexture(this.videoEl);
-                this.texture.minFilter = THREE.LinearFilter;
-                this.texture.magFilter = THREE.LinearFilter;
-                this.texture.format = THREE.RGBAFormat;
-                const keyColor = new THREE.Color(this.data.color);
-
-                this.material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        color: { value: keyColor },
-                        tex: { value: this.texture },
-                        threshold: { value: this.data.threshold }
-                    },
-                    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-                    fragmentShader: `uniform vec3 color; uniform sampler2D tex; uniform float threshold; varying vec2 vUv;
-                        void main() {
-                            vec4 tColor = texture2D(tex, vUv);
-                            float diff = length(tColor.rgb - color);
-                            if (diff < threshold) { discard; } else { gl_FragColor = tColor; }
-                        }`,
-                    transparent: true, side: THREE.DoubleSide
-                });
-                const applyMat = () => {
-                    const mesh = this.el.getObject3D('mesh');
-                    if (mesh) mesh.material = this.material;
-                };
-                applyMat();
-                this.el.addEventListener('object3dset', applyMat);
-            },
-            tick: function () {
-                if (this.texture && this.videoEl.readyState >= this.videoEl.HAVE_CURRENT_DATA) {
-                    this.texture.needsUpdate = true;
-                }
-            }
-        });
-
-        // 3. Xử lý Video Handler
-        AFRAME.registerComponent('video-handler', {
-            schema: { video: { type: 'string' } },
-            init: function () {
-                const video = document.querySelector(this.data.video);
-                this.el.addEventListener('targetFound', () => { if (video) video.play(); });
-                this.el.addEventListener('targetLost', () => { if (video) video.pause(); });
-            }
-        });
-    </script>
+    <script src="./script.js"></script>
 </head>
 
 <body>
@@ -259,34 +33,33 @@
     </div>
 
     <div id="completion-screen">
-        <h1 style="text-shadow: 0 0 10px #64ffda;">HOÀN THÀNH CHIẾN DỊCH</h1>
-        <p style="color: #ccd6f6;">Bạn đã thu thập đủ 10 hồ sơ mô phỏng không gian.</p>
-        <button id="reset-btn" style="margin-top: 20px; padding: 10px 20px; background: #64ffda; color: #020c1b; border: none; font-weight: bold; cursor: pointer;">Khởi động lại</button>
+        <h1>HOÀN THÀNH CHIẾN DỊCH</h1>
+        <p>Bạn đã thu thập đủ 10 hồ sơ mô phỏng không gian.</p>
+        <button id="reset-btn">Khởi động lại</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./target.mind; autoStart: true; filterMinCF: 0.0001; filterBeta: 0.001;"
+    <a-scene mindar-image="imageTargetSrc: ./assets/target.mind; autoStart: true; filterMinCF: 0.0001; filterBeta: 0.001;"
         color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false">
 
         <a-assets>
-            <video id="vid0" src="./video1.mp4" loop playsinline preload="auto"></video>
-            <video id="vid1" src="./video2.mp4" loop playsinline preload="auto"></video>
+            <video id="vid0" src="./assets/video1.mp4" loop playsinline preload="auto"></video>
+            <video id="vid1" src="./assets/video2.mp4" loop playsinline preload="auto"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0" 
-                  map-tracker="targetId: 0; targetName: Ngô Quyền đánh quân Nam Hán (938)" 
+        <a-entity mindar-image-target="targetIndex: 0"
+                  map-tracker="targetId: 0; targetName: Ngô Quyền đánh quân Nam Hán (938)"
                   video-handler="video: #vid0">
             <a-plane chromakey-video="src: #vid0; threshold: 0.4" position="0 0 0" height="1" width="1"></a-plane>
         </a-entity>
 
-        <a-entity mindar-image-target="targetIndex: 1" 
-                  map-tracker="targetId: 1; targetName: Lý Thường Kiệt đánh phủ đầu nhà Tống" 
+        <a-entity mindar-image-target="targetIndex: 1"
+                  map-tracker="targetId: 1; targetName: Lý Thường Kiệt đánh phủ đầu nhà Tống"
                   video-handler="video: #vid1">
             <a-plane chromakey-video="src: #vid1; threshold: 0.4" position="0 0 0" height="1" width="1"></a-plane>
         </a-entity>
-        
     </a-scene>
 </body>
 </html>
